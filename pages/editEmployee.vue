@@ -5,121 +5,100 @@
       <form @submit.prevent="updateEmployee" class="col s12">
         <div class="row">
           <div class="input-field col s12">
-            <input type="text" v-model="employee_id" required />
+            <label >id</label>
+            <input type="text" v-model="employees.employee_id" required />
           </div>
         </div>
         <div class="row">
           <div class="input-field col s12">
-            <input type="text" v-model="name" required />
+            <label for="">name</label>
+            <input type="text" v-model="employees.name" required />
           </div>
         </div>
         <div class="row">
           <div class="input-field col s12">
-            <input type="text" v-model="dept" required />
+            <label for="">dept</label>
+            <input type="text" v-model="employees.dept" required />
           </div>
         </div>
         <div class="row">
           <div class="input-field col s12">
-            <input type="text" v-model="position" required />
+            <label for="">position</label>
+            <input type="text" v-model="employees.position" required />
           </div>
         </div>
         <button type="submit" class="btn">Submit</button>
-        <router-link to="/" class="btn grey">Cancel</router-link>
+        <nuxt-link to="/" class="btn grey">Cancel</nuxt-link>
       </form>
     </div>
   </div>
 </template>
 
 <script>
+import { fireDb } from "~/plugins/firebase.js";
 export default {
-  name: "edit-employee",
+  name: "editEmployee",
   data() {
     return {
-      employee_id: null,
-      name: null,
-      dept: null,
-      position: null
+      employees: null
     };
   },
-  //     asyncData({ app }) {
-  //     const teasers = [];
-  //     const db = app.$firebase.firestore();
-
-  //     return db
-  //       .collection("employees")
-  //       .orderBy("employee_id")
-  //       .get()
-  //       .then(querySnapshot => {
-  //         for (const doc of querySnapshot.docs) {
-  //           teasers.push({
-  //             id: doc.id,
-  //             employee_id: doc.data().employee_id,
-  //             name: doc.data().name,
-  //             dept: doc.data().dept,
-  //             position: doc.data().position
-  //           })
-  //         }
-  //         return {
-  //           teasers,
-  //           employees: teasers
-  //         };
-  //       });
-  //         // this.employees = [...teasers]
-  //   },
-  async beforeRouteEnter(app, to, from, next) {
-      const db = await app.$firebase.firestore()
-    db.collection("employees")
-      .where("employee_id", "==", to.params.employee_id)
-      .get()
-      .then(querySnapshot => {
-        querySnapshot.forEach(doc => {
-          next(vm => {
-            vm.employee_id = doc.data().employee_id;
-            vm.name = doc.data().name;
-            vm.dept = doc.data().dept;
-            vm.position = doc.data().position;
-          });
-        });
-      });
+  async asyncData ({params}) {
+    const ref = fireDb
+      .collection("employees")
+    let snap;
+    let teasers = []
+    try {
+      snap = await ref.where("employee_id", "==", params.employee_id).get()
+      snap.docs.map(doc => {
+        teasers = doc.data()
+      })
+    } catch (error) {
+      console.error(error);
+    }
+    return{
+      employees: teasers
+    }
   },
   watch: {
     $route: "fetchData"
   },
   methods: {
-    fetchData() {
-      db.collection("employees")
-        .where("employee_id", "==", this.$route.params.employee_id)
-        .get()
-        .then(querySnapshot => {
-          querySnapshot.forEach(doc => {
-            this.employee_id = doc.data().employee_id;
-            this.name = doc.data().name;
-            this.dept = doc.data().dept;
-            this.position = doc.data().position;
-          });
-        });
+    async fetchData() {
+      const ref = fireDb.collection("employees")
+      let snap;
+      let teasers = []
+      try {
+        snap = await ref.where("employee_id","==",this.$route.params.employee_id);
+        snap.docs.map(doc => {
+          teasers = doc.data()
+      })
+      } catch (error) {
+        console.error(error)
+      }
+      return{
+        employees: teasers
+      }
     },
-    updateEmployee() {
-      db.collection("employees")
-        .where("employee_id", "==", this.$route.params.employee_id)
-        .get()
-        .then(querySnapshot => {
-          querySnapshot.forEach(doc => {
-            doc.ref
-              .update({
-                employee_id: this.employee_id,
-                name: this.name,
-                dept: this.dept,
-                position: this.position
-              })
-              .then(() => {
-                this.$router.push({
-                  name: "view-employee",
-                  params: { employee_id: this.employee_id }
-                });
-              });
+    async updateEmployee() {
+      const ref = fireDb
+        .collection("employees")
+      let snap;
+      try {
+        snap = await ref.where("employee_id", "==", this.$route.params.employee_id).get();
+        snap.docs.map(doc => {
+          doc.ref.update({
+            employee_id: this.employees.employee_id,
+            name: this.employees.name,
+            dept: this.employees.dept,
+            position: this.employees.position
           });
+          this.$router.push({ name: 'ViewEmployee', params: { employee_id: this.employees.employee_id }})
         });
+        console.log(employees.employee_id)
+      } catch (error) {
+        console.error(error);
+      }
     }
   }
 };
